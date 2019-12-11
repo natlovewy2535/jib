@@ -27,6 +27,10 @@ import com.google.cloud.tools.jib.event.events.TimerEvent;
 import com.google.cloud.tools.jib.event.progress.ProgressEventHandler;
 import com.google.cloud.tools.jib.filesystem.DirectoryWalker;
 import com.google.cloud.tools.jib.filesystem.TempDirectoryProvider;
+import com.google.cloud.tools.jib.plugins.api.DefaultMavenLayoutService;
+import com.google.cloud.tools.jib.plugins.api.LayoutService;
+import com.google.cloud.tools.jib.plugins.api.LayoutService.ExtraLayer;
+import com.google.cloud.tools.jib.plugins.api.MavenLayoutService;
 import com.google.cloud.tools.jib.plugins.common.ContainerizingMode;
 import com.google.cloud.tools.jib.plugins.common.JavaContainerBuilderHelper;
 import com.google.cloud.tools.jib.plugins.common.ProjectProperties;
@@ -49,6 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -180,6 +185,16 @@ public class MavenProjectProperties implements ProjectProperties {
     return Optional.ofNullable(node.getValue());
   }
 
+  private MavenLayoutService getLayoutService() {
+    ServiceLoader<MavenLayoutService> layoutService = ServiceLoader.load(MavenLayoutService.class);
+    if (layoutService.iterator().hasNext()) {
+      log(LogEvent.lifecycle("MavenLayoutService loaded"));
+      return layoutService.iterator().next();
+    }
+    log(LogEvent.lifecycle("MavenLayoutService not loaded"));
+    return new DefaultMavenLayoutService();
+  }
+
   private final MavenProject project;
   private final MavenSession session;
   private final SingleThreadedExecutor singleThreadedExecutor = new SingleThreadedExecutor();
@@ -228,20 +243,27 @@ public class MavenProjectProperties implements ProjectProperties {
         return JavaContainerBuilderHelper.fromExplodedWar(javaContainerBuilder, explodedWarPath);
       }
 
+      MavenLayoutService layoutService = getLayoutService();
+
       switch (containerizingMode) {
         case EXPLODED:
           // Add resources, and classes
           Path classesOutputDirectory = Paths.get(project.getBuild().getOutputDirectory());
           // Don't use Path.endsWith(), since Path works on path elements.
           Predicate<Path> isClassFile = path -> path.getFileName().toString().endsWith(".class");
-          javaContainerBuilder
-              .addResources(classesOutputDirectory, isClassFile.negate())
-              .addClasses(classesOutputDirectory, isClassFile);
+          if (layoutService.keepJibLayer(LayoutService.Layer.RESOURCES)) {
+            javaContainerBuilder.addResources(classesOutputDirectory, isClassFile.negate());
+          }
+          if (layoutService.keepJibLayer(LayoutService.Layer.CLASSES)) {
+            javaContainerBuilder.addClasses(classesOutputDirectory, isClassFile);
+          }
           break;
 
         case PACKAGED:
           // Add a JAR
-          javaContainerBuilder.addToClasspath(getJarArtifact());
+          if (layoutService.keepJibLayer(LayoutService.Layer.OTHER_CLASSPATH)) {
+            javaContainerBuilder.addToClasspath(getJarArtifact());
+          }
           break;
 
         default:
@@ -258,16 +280,26 @@ public class MavenProjectProperties implements ProjectProperties {
                   .map(MavenProject::getArtifact)
                   .collect(Collectors.toSet()));
 
-      return javaContainerBuilder
-          .addDependencies(
-              Preconditions.checkNotNull(classifiedDependencies.get(LayerType.DEPENDENCIES)))
-          .addSnapshotDependencies(
-              Preconditions.checkNotNull(
-                  classifiedDependencies.get(LayerType.SNAPSHOT_DEPENDENCIES)))
-          .addProjectDependencies(
-              Preconditions.checkNotNull(
-                  classifiedDependencies.get(LayerType.PROJECT_DEPENDENCIES)))
-          .toContainerBuilder();
+      if (layoutService.keepJibLayer(LayoutService.Layer.DEPENDENCIES)) {
+        javaContainerBuilder.addDependencies(
+            Preconditions.checkNotNull(classifiedDependencies.get(LayerType.DEPENDENCIES)));
+      }
+      if (layoutService.keepJibLayer(LayoutService.Layer.SNAPSHOT_DEPENDENCIES)) {
+        javaContainerBuilder.addSnapshotDependencies(
+            Preconditions.checkNotNull(
+                classifiedDependencies.get(LayerType.SNAPSHOT_DEPENDENCIES)));
+      }
+      if (layoutService.keepJibLayer(LayoutService.Layer.PROJECT_DEPENDENCIES)) {
+        javaContainerBuilder.addProjectDependencies(
+            Preconditions.checkNotNull(classifiedDependencies.get(LayerType.PROJECT_DEPENDENCIES)));
+      }
+
+      JibContainerBuilder jibContainerBuilder = javaContainerBuilder.toContainerBuilder();
+      for (ExtraLayer extraFiles : layoutService.getExtraLayers(project, session)) {
+        jibContainerBuilder.addLayer(extraFiles.sources, extraFiles.pathInContainer);
+      }
+
+      return jibContainerBuilder;
 
     } catch (IOException ex) {
       throw new IOException(
@@ -320,7 +352,7 @@ public class MavenProjectProperties implements ProjectProperties {
         .addEventHandler(LogEvent.class, this::log)
         .addEventHandler(
             TimerEvent.class,
-            new TimerEventHandler(message -> consoleLogger.log(LogEvent.Level.DEBUG, message)))
+            new TimerEventHandler(message -> consoleLogger.log(Level.DEBUG, message)))
         .addEventHandler(
             ProgressEvent.class,
             new ProgressEventHandler(

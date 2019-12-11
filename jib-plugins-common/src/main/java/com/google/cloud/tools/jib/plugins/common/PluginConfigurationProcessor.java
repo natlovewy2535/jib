@@ -33,6 +33,8 @@ import com.google.cloud.tools.jib.api.RegistryImage;
 import com.google.cloud.tools.jib.api.TarImage;
 import com.google.cloud.tools.jib.frontend.CredentialRetrieverFactory;
 import com.google.cloud.tools.jib.global.JibSystemProperties;
+import com.google.cloud.tools.jib.plugins.api.DefaultLayoutService;
+import com.google.cloud.tools.jib.plugins.api.LayoutService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
@@ -49,6 +51,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.BiFunction;
 import javax.annotation.Nullable;
@@ -71,6 +74,15 @@ public class PluginConfigurationProcessor {
   // which we consider non-syncable. These should not be included in the sync-map.
   private static final ImmutableList<String> CONST_LAYERS =
       ImmutableList.of(LayerType.DEPENDENCIES.getName());
+
+  private static LayoutService getLayoutService(ProjectProperties projectProperties) {
+    ServiceLoader<LayoutService> layoutService = ServiceLoader.load(LayoutService.class);
+    if (layoutService.iterator().hasNext()) {
+      projectProperties.log(LogEvent.lifecycle("MavenLayoutService loaded"));
+      return layoutService.iterator().next();
+    }
+    return new DefaultLayoutService();
+  }
 
   public static JibBuildRunner createJibBuildRunnerForDockerDaemonImage(
       RawConfiguration rawConfiguration,
@@ -270,6 +282,7 @@ public class PluginConfigurationProcessor {
                 modificationTimeProvider));
       }
     }
+
     return jibContainerBuilder;
   }
 
@@ -401,6 +414,15 @@ public class PluginConfigurationProcessor {
         return null;
       }
       return rawEntrypoint.get();
+    }
+
+    LayoutService layoutService = getLayoutService(projectProperties);
+    if (!layoutService.getEntrypoint().isEmpty()) {
+      projectProperties.log(
+          LogEvent.warn(
+              "mainClass, extraClasspath, and jvmFlags are ignored because custom layout service "
+                  + "provides default entrypoint"));
+      return layoutService.getEntrypoint();
     }
 
     if (projectProperties.isWarProject()) {

@@ -1,8 +1,12 @@
 plugins {
- id 'io.freefair.maven-plugin'
- id 'net.researchgate.release'
- id 'maven-publish'
- id 'eclipse'
+  id 'io.freefair.maven-plugin'
+  id 'net.researchgate.release'
+  id 'maven-publish'
+  id 'eclipse'
+}
+
+repositories {
+  mavenLocal()
 }
 
 // only maven specific dependencies should be versioned, everything else should be defined by constrains in
@@ -13,6 +17,8 @@ dependencies {
 
   implementation 'org.apache.maven:maven-plugin-api:3.5.2'
   implementation 'org.apache.maven:maven-core:3.5.2'
+
+  implementation "com.google.cloud.tools.jib.plugins:layout-service-api:0.0.1-SNAPSHOT"
 
   // equivalent to "provided"
   compileOnly 'org.apache.maven.plugin-tools:maven-plugin-annotations:3.5'
