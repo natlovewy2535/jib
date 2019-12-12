@@ -21,7 +21,6 @@ import com.google.cloud.tools.jib.api.JavaContainerBuilder;
 import com.google.cloud.tools.jib.api.JavaContainerBuilder.LayerType;
 import com.google.cloud.tools.jib.api.JibContainerBuilder;
 import com.google.cloud.tools.jib.api.LogEvent;
-import com.google.cloud.tools.jib.api.LogEvent.Level;
 import com.google.cloud.tools.jib.event.events.ProgressEvent;
 import com.google.cloud.tools.jib.event.events.TimerEvent;
 import com.google.cloud.tools.jib.event.progress.ProgressEventHandler;
@@ -422,7 +421,7 @@ public class MavenProjectProperties implements ProjectProperties {
   }
 
   /**
-   * Gets the path of the JAR that the Maven JAR Plugin would generate.
+   * Gets the path of the JAR that the Maven JAR Plugin generates.
    *
    * <p>https://maven.apache.org/plugins/maven-jar-plugin/jar-mojo.html
    * https://github.com/apache/maven-jar-plugin/blob/80f58a84aacff6e671f5a601d62a3a3800b507dc/src/main/java/org/apache/maven/plugins/jar/AbstractJarMojo.java#L177
@@ -454,8 +453,7 @@ public class MavenProjectProperties implements ProjectProperties {
 
     String suffix = ".jar";
     if (jarRepackagedBySpringBoot()) {
-      consoleLogger.log(
-          Level.LIFECYCLE, "Spring Boot repackaging (fat JAR) detected; using the original JAR");
+      log(LogEvent.lifecycle("Spring Boot repackaging (fat JAR) detected; using the original JAR"));
       if (outputDirectory.equals(buildDirectory)) { // Spring renames original only when needed
         suffix += ".original";
       }
@@ -464,7 +462,7 @@ public class MavenProjectProperties implements ProjectProperties {
     String noSuffixJarName =
         project.getBuild().getFinalName() + (classifier == null ? "" : '-' + classifier);
     Path jarPath = outputDirectory.resolve(noSuffixJarName + suffix);
-    consoleLogger.log(Level.DEBUG, "Using JAR: " + jarPath);
+    log(LogEvent.debug("Using JAR: " + jarPath));
 
     if (".jar".equals(suffix)) {
       return jarPath;
