@@ -9,6 +9,7 @@ plugins {
 }
 
 repositories {
+  mavenLocal()
   // because gradle plugin dependencies are pulling from jcenter
   jcenter()
 }
@@ -16,6 +17,8 @@ repositories {
 dependencies {
   sourceProject project(":jib-core")
   sourceProject project(":jib-plugins-common")
+
+  implementation 'com.google.cloud.tools.jib.plugins:layout-service-api:0.0.1-SNAPSHOT'
 
   testImplementation "junit:junit:${dependencyVersions.JUNIT}"
   testImplementation "org.mockito:mockito-core:${dependencyVersions.MOCKITO_CORE}"

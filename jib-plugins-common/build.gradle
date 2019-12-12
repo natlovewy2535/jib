@@ -1,7 +1,3 @@
-repositories {
-  mavenLocal()
-}
-
 dependencies {
   implementation project(':jib-core')
   // since jib core doesn't export dependencies to a compile scope
@@ -10,8 +6,7 @@ dependencies {
   // want to use the sourceProject helper because it does things we don't want
   // for an unpublished library.
   implementation project(':jib-core').configurations.implementation.dependencies
-
-  implementation 'com.google.cloud.tools.jib.plugins:layout-service-api:0.0.1-SNAPSHOT'
+  implementation project(':jib-plugin-extension-common')
 
   testImplementation "junit:junit:${dependencyVersions.JUNIT}"
   testImplementation "org.mockito:mockito-core:${dependencyVersions.MOCKITO_CORE}"

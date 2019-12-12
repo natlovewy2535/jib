@@ -20,6 +20,7 @@ import com.google.cloud.tools.jib.api.Containerizer;
 import com.google.cloud.tools.jib.api.JavaContainerBuilder;
 import com.google.cloud.tools.jib.api.JibContainerBuilder;
 import com.google.cloud.tools.jib.api.LogEvent;
+import com.google.cloud.tools.jib.plugins.api.JibPluginExtensionException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -79,4 +80,7 @@ public interface ProjectProperties {
   int getMajorJavaVersion();
 
   boolean isOffline();
+
+  JibContainerBuilder extendJibContainerBuilder(JibContainerBuilder containerBuilder)
+      throws JibPluginExtensionException;
 }

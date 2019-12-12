@@ -20,6 +20,7 @@ import com.google.cloud.tools.jib.api.CacheDirectoryCreationException;
 import com.google.cloud.tools.jib.api.InvalidImageReferenceException;
 import com.google.cloud.tools.jib.docker.DockerClient;
 import com.google.cloud.tools.jib.filesystem.TempDirectoryProvider;
+import com.google.cloud.tools.jib.plugins.api.JibPluginExtensionException;
 import com.google.cloud.tools.jib.plugins.common.BuildStepsExecutionException;
 import com.google.cloud.tools.jib.plugins.common.HelpfulSuggestions;
 import com.google.cloud.tools.jib.plugins.common.IncompatibleBaseImageJavaVersionException;
@@ -126,7 +127,10 @@ public class BuildDockerMojo extends JibPluginConfiguration {
       throw new MojoExecutionException(
           HelpfulSuggestions.forInvalidImageReference(ex.getInvalidReference()), ex);
 
-    } catch (IOException | CacheDirectoryCreationException | MainClassInferenceException ex) {
+    } catch (IOException
+        | CacheDirectoryCreationException
+        | MainClassInferenceException
+        | JibPluginExtensionException ex) {
       throw new MojoExecutionException(ex.getMessage(), ex);
 
     } catch (BuildStepsExecutionException ex) {

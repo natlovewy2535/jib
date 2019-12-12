@@ -277,8 +277,7 @@ public class GradleProjectProperties implements ProjectProperties {
     containerizer
         .addEventHandler(LogEvent.class, this::log)
         .addEventHandler(
-            TimerEvent.class,
-            new TimerEventHandler(message -> consoleLogger.log(LogEvent.Level.DEBUG, message)))
+            TimerEvent.class, new TimerEventHandler(message -> log(LogEvent.debug(message))))
         .addEventHandler(
             ProgressEvent.class,
             new ProgressEventHandler(
@@ -380,5 +379,10 @@ public class GradleProjectProperties implements ProjectProperties {
   @Override
   public boolean isOffline() {
     return project.getGradle().getStartParameter().isOffline();
+  }
+
+  @Override
+  public JibContainerBuilder extendJibContainerBuilder(JibContainerBuilder containerBuilder) {
+    return containerBuilder;
   }
 }

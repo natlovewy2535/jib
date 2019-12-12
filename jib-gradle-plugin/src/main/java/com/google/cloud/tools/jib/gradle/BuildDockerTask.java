@@ -20,6 +20,7 @@ import com.google.cloud.tools.jib.api.CacheDirectoryCreationException;
 import com.google.cloud.tools.jib.api.InvalidImageReferenceException;
 import com.google.cloud.tools.jib.docker.DockerClient;
 import com.google.cloud.tools.jib.filesystem.TempDirectoryProvider;
+import com.google.cloud.tools.jib.plugins.api.JibPluginExtensionException;
 import com.google.cloud.tools.jib.plugins.common.BuildStepsExecutionException;
 import com.google.cloud.tools.jib.plugins.common.HelpfulSuggestions;
 import com.google.cloud.tools.jib.plugins.common.IncompatibleBaseImageJavaVersionException;
@@ -73,7 +74,7 @@ public class BuildDockerTask extends DefaultTask implements JibTask {
   @TaskAction
   public void buildDocker()
       throws IOException, BuildStepsExecutionException, CacheDirectoryCreationException,
-          MainClassInferenceException {
+          MainClassInferenceException, JibPluginExtensionException {
     Preconditions.checkNotNull(jibExtension);
 
     // Check deprecated parameters

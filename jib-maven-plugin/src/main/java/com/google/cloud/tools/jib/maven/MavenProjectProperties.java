@@ -27,9 +27,7 @@ import com.google.cloud.tools.jib.event.events.TimerEvent;
 import com.google.cloud.tools.jib.event.progress.ProgressEventHandler;
 import com.google.cloud.tools.jib.filesystem.DirectoryWalker;
 import com.google.cloud.tools.jib.filesystem.TempDirectoryProvider;
-import com.google.cloud.tools.jib.plugins.api.DefaultMavenLayoutService;
-import com.google.cloud.tools.jib.plugins.api.LayoutService;
-import com.google.cloud.tools.jib.plugins.api.LayoutService.ExtraLayer;
+import com.google.cloud.tools.jib.plugins.api.JibPluginExtensionException;
 import com.google.cloud.tools.jib.plugins.api.MavenLayoutService;
 import com.google.cloud.tools.jib.plugins.common.ContainerizingMode;
 import com.google.cloud.tools.jib.plugins.common.JavaContainerBuilderHelper;
@@ -50,6 +48,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -185,16 +184,6 @@ public class MavenProjectProperties implements ProjectProperties {
     return Optional.ofNullable(node.getValue());
   }
 
-  private MavenLayoutService getLayoutService() {
-    ServiceLoader<MavenLayoutService> layoutService = ServiceLoader.load(MavenLayoutService.class);
-    if (layoutService.iterator().hasNext()) {
-      log(LogEvent.lifecycle("MavenLayoutService loaded"));
-      return layoutService.iterator().next();
-    }
-    log(LogEvent.lifecycle("MavenLayoutService not loaded"));
-    return new DefaultMavenLayoutService();
-  }
-
   private final MavenProject project;
   private final MavenSession session;
   private final SingleThreadedExecutor singleThreadedExecutor = new SingleThreadedExecutor();
@@ -243,27 +232,20 @@ public class MavenProjectProperties implements ProjectProperties {
         return JavaContainerBuilderHelper.fromExplodedWar(javaContainerBuilder, explodedWarPath);
       }
 
-      MavenLayoutService layoutService = getLayoutService();
-
       switch (containerizingMode) {
         case EXPLODED:
           // Add resources, and classes
           Path classesOutputDirectory = Paths.get(project.getBuild().getOutputDirectory());
           // Don't use Path.endsWith(), since Path works on path elements.
           Predicate<Path> isClassFile = path -> path.getFileName().toString().endsWith(".class");
-          if (layoutService.keepJibLayer(LayoutService.Layer.RESOURCES)) {
-            javaContainerBuilder.addResources(classesOutputDirectory, isClassFile.negate());
-          }
-          if (layoutService.keepJibLayer(LayoutService.Layer.CLASSES)) {
-            javaContainerBuilder.addClasses(classesOutputDirectory, isClassFile);
-          }
+          javaContainerBuilder
+              .addResources(classesOutputDirectory, isClassFile.negate())
+              .addClasses(classesOutputDirectory, isClassFile);
           break;
 
         case PACKAGED:
           // Add a JAR
-          if (layoutService.keepJibLayer(LayoutService.Layer.OTHER_CLASSPATH)) {
-            javaContainerBuilder.addToClasspath(getJarArtifact());
-          }
+          javaContainerBuilder.addToClasspath(getJarArtifact());
           break;
 
         default:
@@ -280,26 +262,13 @@ public class MavenProjectProperties implements ProjectProperties {
                   .map(MavenProject::getArtifact)
                   .collect(Collectors.toSet()));
 
-      if (layoutService.keepJibLayer(LayoutService.Layer.DEPENDENCIES)) {
-        javaContainerBuilder.addDependencies(
-            Preconditions.checkNotNull(classifiedDependencies.get(LayerType.DEPENDENCIES)));
-      }
-      if (layoutService.keepJibLayer(LayoutService.Layer.SNAPSHOT_DEPENDENCIES)) {
-        javaContainerBuilder.addSnapshotDependencies(
-            Preconditions.checkNotNull(
-                classifiedDependencies.get(LayerType.SNAPSHOT_DEPENDENCIES)));
-      }
-      if (layoutService.keepJibLayer(LayoutService.Layer.PROJECT_DEPENDENCIES)) {
-        javaContainerBuilder.addProjectDependencies(
-            Preconditions.checkNotNull(classifiedDependencies.get(LayerType.PROJECT_DEPENDENCIES)));
-      }
-
-      JibContainerBuilder jibContainerBuilder = javaContainerBuilder.toContainerBuilder();
-      for (ExtraLayer extraFiles : layoutService.getExtraLayers(project, session)) {
-        jibContainerBuilder.addLayer(extraFiles.sources, extraFiles.pathInContainer);
-      }
-
-      return jibContainerBuilder;
+      javaContainerBuilder.addDependencies(
+          Preconditions.checkNotNull(classifiedDependencies.get(LayerType.DEPENDENCIES)));
+      javaContainerBuilder.addSnapshotDependencies(
+          Preconditions.checkNotNull(classifiedDependencies.get(LayerType.SNAPSHOT_DEPENDENCIES)));
+      javaContainerBuilder.addProjectDependencies(
+          Preconditions.checkNotNull(classifiedDependencies.get(LayerType.PROJECT_DEPENDENCIES)));
+      return javaContainerBuilder.toContainerBuilder();
 
     } catch (IOException ex) {
       throw new IOException(
@@ -351,8 +320,7 @@ public class MavenProjectProperties implements ProjectProperties {
     containerizer
         .addEventHandler(LogEvent.class, this::log)
         .addEventHandler(
-            TimerEvent.class,
-            new TimerEventHandler(message -> consoleLogger.log(Level.DEBUG, message)))
+            TimerEvent.class, new TimerEventHandler(message -> log(LogEvent.debug(message))))
         .addEventHandler(
             ProgressEvent.class,
             new ProgressEventHandler(
@@ -524,5 +492,16 @@ public class MavenProjectProperties implements ProjectProperties {
       }
     }
     return false;
+  }
+
+  @Override
+  public JibContainerBuilder extendJibContainerBuilder(JibContainerBuilder containerBuilder)
+      throws JibPluginExtensionException {
+    Iterator<MavenLayoutService> services = ServiceLoader.load(MavenLayoutService.class).iterator();
+    if (services.hasNext()) {
+      log(LogEvent.lifecycle("MavenLayoutService loaded"));
+      services.next().extendJibContainerBuilder(containerBuilder, project, session, this::log);
+    }
+    return containerBuilder;
   }
 }

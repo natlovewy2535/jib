@@ -5,24 +5,18 @@ plugins {
   id 'eclipse'
 }
 
-repositories {
-  mavenLocal()
-}
-
 // only maven specific dependencies should be versioned, everything else should be defined by constrains in
 // parent build.gradle
 dependencies {
   sourceProject project(':jib-plugins-common')
   sourceProject project(':jib-core')
+  implementation project(':jib-maven-plugin-extension-api')
 
   implementation 'org.apache.maven:maven-plugin-api:3.5.2'
   implementation 'org.apache.maven:maven-core:3.5.2'
 
-  implementation "com.google.cloud.tools.jib.plugins:layout-service-api:0.0.1-SNAPSHOT"
-
   // equivalent to "provided"
   compileOnly 'org.apache.maven.plugin-tools:maven-plugin-annotations:3.5'
-  testImplementation 'org.apache.maven.plugin-tools:maven-plugin-annotations:3.5'
 
   // maven-plugin-testing-harness pulls in conflicting implementations of DefaultPlexusContainer
   // (sisu (correct) vs default-plexus-container (wrong)) so ensure this is first in the test classpath
