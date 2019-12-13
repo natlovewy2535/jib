@@ -117,6 +117,10 @@ public class BuildDockerMojo extends JibPluginConfiguration {
               + ex.getInvalidCreationTime(),
           ex);
 
+    } catch (JibPluginExtensionException ex) {
+      throw new MojoExecutionException(
+          "executing a third-part Jib Plugin extension failed: " + ex.getMessage(), ex.getCause());
+
     } catch (IncompatibleBaseImageJavaVersionException ex) {
       throw new MojoExecutionException(
           HelpfulSuggestions.forIncompatibleBaseImageJavaVersionForMaven(
@@ -127,10 +131,7 @@ public class BuildDockerMojo extends JibPluginConfiguration {
       throw new MojoExecutionException(
           HelpfulSuggestions.forInvalidImageReference(ex.getInvalidReference()), ex);
 
-    } catch (IOException
-        | CacheDirectoryCreationException
-        | MainClassInferenceException
-        | JibPluginExtensionException ex) {
+    } catch (IOException | CacheDirectoryCreationException | MainClassInferenceException ex) {
       throw new MojoExecutionException(ex.getMessage(), ex);
 
     } catch (BuildStepsExecutionException ex) {
