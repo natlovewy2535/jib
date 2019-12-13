@@ -1,4 +1,6 @@
 dependencies {
+  sourceProject project(':jib-plugin-extension-common')
+
   implementation project(':jib-core')
   // since jib core doesn't export dependencies to a compile scope
   // (they are "runtime"), just grab them manually. This means we don't have
@@ -6,7 +8,6 @@ dependencies {
   // want to use the sourceProject helper because it does things we don't want
   // for an unpublished library.
   implementation project(':jib-core').configurations.implementation.dependencies
-  implementation project(':jib-plugin-extension-common')
 
   testImplementation "junit:junit:${dependencyVersions.JUNIT}"
   testImplementation "org.mockito:mockito-core:${dependencyVersions.MOCKITO_CORE}"

@@ -18,8 +18,6 @@ dependencies {
   sourceProject project(":jib-core")
   sourceProject project(":jib-plugins-common")
 
-  implementation 'com.google.cloud.tools.jib.plugins:layout-service-api:0.0.1-SNAPSHOT'
-
   testImplementation "junit:junit:${dependencyVersions.JUNIT}"
   testImplementation "org.mockito:mockito-core:${dependencyVersions.MOCKITO_CORE}"
   testImplementation "org.slf4j:slf4j-api:${dependencyVersions.SLF4J_API}"
@@ -36,7 +34,10 @@ dependencies {
 // Prepare release
 release {
   tagTemplate = 'v$version-gradle'
-  ignoredSnapshotDependencies = ["com.google.cloud.tools:jib-core", "com.google.cloud.tools:jib-plugins-common"]
+  ignoredSnapshotDependencies = [
+    'com.google.cloud.tools:jib-core',
+    'com.google.cloud.tools:jib-plugins-common',
+  ]
   git {
     requireBranch = /^gradle_release_v\d+.*$/  //regex
   }
@@ -61,8 +62,8 @@ tasks.publishPlugins.dependsOn integrationTest
 /* ECLIPSE */
 eclipse.classpath.file.whenMerged { cp ->
   cp.entries.each {
-    if (it.path == "src/test/resources" || it.path == "src/integration-test/resources") {
-      it.excludes += "gradle/projects/"
+    if (it.path == 'src/test/resources' || it.path == 'src/integration-test/resources') {
+      it.excludes += 'gradle/projects/'
     }
   }
 }

@@ -1,7 +1,13 @@
+plugins {
+  id 'net.researchgate.release'
+  id 'maven-publish'
+}
+
 dependencies {
-  implementation project(':jib-core')
-  // TODO: should be a better way to match the version in jib-maven-plugin.
-  implementation "org.apache.maven:maven-core:3.5.2"
+  sourceProject project(':jib-plugin-extension-common')
+  api project(':jib-core')
+  // TODO: there should be a better way to match this with the version in :jib-maven-plugin.
+  api 'org.apache.maven:maven-core:3.5.2'
 }
 
 jar {
@@ -18,3 +24,19 @@ jar {
     attributes 'Export-Package': 'com.google.cloud.tools.jib.plugins.api.maven.*'
   }
 }
+
+configureMavenRelease()
+
+/* RELEASE */
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      pom {
+        name = "Extension API for Jib Maven Plugin"
+        description = 'Provides API to extend Jib Maven Plugin.'
+      }
+      from components.java
+    }
+  }
+}
+/* RELEASE */
