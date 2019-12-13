@@ -9,7 +9,6 @@ plugins {
 }
 
 repositories {
-  mavenLocal()
   // because gradle plugin dependencies are pulling from jcenter
   jcenter()
 }

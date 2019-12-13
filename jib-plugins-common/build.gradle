@@ -1,6 +1,6 @@
 dependencies {
-  implementation project(':jib-plugin-extension-common')
   implementation project(':jib-core')
+  implementation project(':jib-plugin-extension-common')
   // since jib core doesn't export dependencies to a compile scope
   // (they are "runtime"), just grab them manually. This means we don't have
   // to synchronize dependencies between the two projects -- we don't
