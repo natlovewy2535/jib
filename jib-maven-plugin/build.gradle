@@ -10,8 +10,8 @@ plugins {
 dependencies {
   sourceProject project(':jib-plugins-common')
   sourceProject project(':jib-core')
-  implementation project(':jib-maven-plugin-extension-api')
 
+  implementation project(':jib-maven-plugin-extension-api')
   implementation 'org.apache.maven:maven-plugin-api:3.5.2'
   implementation 'org.apache.maven:maven-core:3.5.2'
 
@@ -57,7 +57,11 @@ publishing {
 
 release {
   tagTemplate = 'v$version-maven'
-  ignoredSnapshotDependencies = ["com.google.cloud.tools:jib-core", "com.google.cloud.tools:jib-plugins-common"]
+  ignoredSnapshotDependencies = [
+    'com.google.cloud.tools:jib-core',
+    'com.google.cloud.tools:jib-plugins-common',
+    'com.google.cloud.tools:jib-maven-plugin-extension-api',
+  ]
   git {
     requireBranch = /^maven_release_v\d+.*$/  //regex
   }
@@ -67,8 +71,8 @@ release {
 /* ECLIPSE */
 eclipse.classpath.file.whenMerged { cp ->
   cp.entries.each {
-    if (it.path == "src/test/resources") {
-      it.excludes += "maven/projects/"
+    if (it.path == 'src/test/resources') {
+      it.excludes += 'maven/projects/'
     }
   }
 }

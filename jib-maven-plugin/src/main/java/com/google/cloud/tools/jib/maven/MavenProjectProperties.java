@@ -27,7 +27,7 @@ import com.google.cloud.tools.jib.event.progress.ProgressEventHandler;
 import com.google.cloud.tools.jib.filesystem.DirectoryWalker;
 import com.google.cloud.tools.jib.filesystem.TempDirectoryProvider;
 import com.google.cloud.tools.jib.plugins.api.JibPluginExtensionException;
-import com.google.cloud.tools.jib.plugins.api.MavenLayoutService;
+import com.google.cloud.tools.jib.plugins.api.maven.JibMavenPluginExtension;
 import com.google.cloud.tools.jib.plugins.common.ContainerizingMode;
 import com.google.cloud.tools.jib.plugins.common.JavaContainerBuilderHelper;
 import com.google.cloud.tools.jib.plugins.common.ProjectProperties;
@@ -495,7 +495,8 @@ public class MavenProjectProperties implements ProjectProperties {
   @Override
   public JibContainerBuilder extendJibContainerBuilder(JibContainerBuilder containerBuilder)
       throws JibPluginExtensionException {
-    Iterator<MavenLayoutService> services = ServiceLoader.load(MavenLayoutService.class).iterator();
+    Iterator<JibMavenPluginExtension> services =
+        ServiceLoader.load(JibMavenPluginExtension.class).iterator();
     if (services.hasNext()) {
       log(LogEvent.lifecycle("MavenLayoutService loaded"));
       services.next().extendJibContainerBuilder(containerBuilder, project, session, this::log);
