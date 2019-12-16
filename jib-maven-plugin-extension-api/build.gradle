@@ -4,7 +4,8 @@ plugins {
 }
 
 dependencies {
-  sourceProject project(':jib-plugin-extension-common')
+  sourceProject project(':jib-plugin-extension-api')
+
   api project(':jib-core')
   // TODO: there should be a better way to match this with the version in :jib-maven-plugin.
   api 'org.apache.maven:maven-core:3.5.2'
